@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' https://unpkg.com https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.1/showdown.min.js 'nonce-npm-viewer-js' https://fonts.googleapis.com 'nonce-eruda-init' 'nonce-fileSize-script'; font-src * 'data:' 'unsafe-inline' data: ; child-src 'none'; style-src 'unsafe-eval' 'nonce npm-viewer-css' 'unsafe-inline' * ; connect-src https://registry.npmjs.com htttps://icons.duckduckgo.com/ip5/npmjs.com.ico ; img-src 'self' data: 'unsafe-inline' *"
+    />
+    <link rel="shortcut icon" href="https://icons.duckduckgo.com/ip5/npmjs.com.ico" type="image/x-icon">
+    <script src="https://unpkg.com/eruda"></script>
+    <script nonce="eruda-init">
+      eruda.init();
+    </script>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NPM Viewer</title>
+    <!-- Your application must load the Roboto and Material Icons fonts. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Material+Icons&display=block"
+      rel="stylesheet"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.1/showdown.min.js"
+      integrity="sha512-L03kznCrNOfVxOUovR6ESfCz9Gfny7gihUX/huVbQB9zjODtYpxaVtIaAkpetoiyV2eqWbvxMH9fiSv5enX7bw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <style>
+      body {
+          padding: 0;
+          margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Keep other js separated from modules -->
+    <script nonce="fileSize-script">
+      Object.defineProperty(Number.prototype, "fileSize", {
+        value: function (a, b, c, d) {
+          return (
+            ((a = a == "SI" ? [1e3, "k", "B"] : [1024, "K", "iB"]),
+            (b = Math),
+            (c = b.log),
+            (d = (c(this) / c(a[0])) | 0),
+            this / b.pow(a[0], d)).toFixed(2) +
+            " " +
+            (d ? (a[1] + "MGTPEZY")[--d] + a[2] : "Bytes")
+          );
+        },
+        writable: false,
+        enumerable: false,
+      });
+    </script>
+    <script type="module" nonce="npm-viewer-js">
+      import {parse} from "https://unpkg.com/marked?module";
+      import "https://unpkg.com/@material/mwc-button?module";
+      import "https://unpkg.com/@material/mwc-textarea?module";
+      import "https://unpkg.com/@material/mwc-dialog?module";
+      import "https://unpkg.com/@material/mwc-textfield?module";
+      import "https://unpkg.com/@material/mwc-linear-progress?module";
+      import "https://unpkg.com/@material/mwc-formfield?module";
+      // import "https://unpkg.com/@material/mwc-checkbox?module";
+      // import "https://unpkg.com/@material/mwc-switch?module";
+      import "https://unpkg.com/@material/mwc-top-app-bar?module";
+      import "https://unpkg.com/@material/mwc-snackbar?module";
+      import "https://unpkg.com/@github/time-elements?module";
+      // Tool
+      /**
+       * @param {string} elementName
+       * @returns {HTMLElement}
+       */
+      const newElem = function (elementName) {
+        return document.createElement(elementName);
+      };
+      var domItems = {
+        ui: {
+          packageOutContainer: newElem("div"),
+          app: newElem("mwc-top-app-bar"),
+          progressBar: newElem("mwc-linear-progress"),
+          topAppBarComponents: {
+            titleElem: newElem("div"),
+            titleField: "NPM Registry Viewer",
+          },
+        },
+        inputs: {
+          packageName: newElem("mwc-textfield"),
+        },
+        buttons: {
+          load: newElem("mwc-button"),
+        },
+        packageDialog: {
+          dialogBase: newElem("mwc-dialog"),
+          textInput: newElem("mwc-textfield"),
+          /**
+           * @type {HTMLInputElement} button
+           */
+          button: newElem("mwc-button"),
+        },
+      };
+      /**
+       * @param {HTMLElement} elem
+       */
+      const appendApp = function (elem) {
+        domItems.ui.app.appendChild(elem);
+      };
+
+      domItems.packageDialog.dialogBase.heading = "Package Name";
+      domItems.packageDialog.textInput.required = true;
+      domItems.packageDialog.button.slot = "primaryAction";
+      domItems.packageDialog.button.label = "Load";
+      domItems.packageDialog.dialogBase.scrimClickAction = "";
+      domItems.packageDialog.dialogBase.escapeKeyAction = "";
+      domItems.packageDialog.button.addEventListener("click", function () {
+        if(domItems.packageDialog.textInput.value.length<=0) {
+          return;
+        }
+        fetch(
+          "https://registry.npmjs.com/".concat(
+            domItems.packageDialog.textInput.value
+          )
+        ).then(async function (npmRegistryResponse) {
+          const json = await npmRegistryResponse.json();
+          // We can disect the output with eruda
+          console.log(json);
+          domItems.ui.topAppBarComponents.titleElem.innerText =
+            domItems.ui.topAppBarComponents.titleField.concat(
+              " - ",
+              domItems.packageDialog.textInput.value
+            );
+          document.querySelector("title").innerText =
+            domItems.ui.topAppBarComponents.titleField.concat(" - ", json.name);
+          domItems.ui.packageOutContainer.childNodes.forEach(function (
+            childNode
+          ) {
+            // Empty the UI.
+            childNode.remove();
+          });
+          const packageOutContainer = domItems.ui.packageOutContainer;
+          var packageNameHeader = newElem("h1");
+          packageNameHeader.innerText = json.name;
+          var packageDesc = newElem("blockquote");
+          packageDesc.innerText = json.description;
+
+          var packageUpdateTimestampContainer = document.createElement("div");
+          packageUpdateTimestampContainer.innerHTML =
+            'Last updated: <time-ago datetime="' +
+            json.time[json["dist-tags"]?.latest] +
+            '">' +
+            json.time[json["dist-tags"]?.latest] +
+            '</time-ago><br/>Created: <time-ago datetime="' +
+            json.time.created +
+            '">' +
+            json.time.created +
+            "</time-ago>";
+          console.log(json.time[json["dist-tags"]?.latest]);
+          var hr = newElem("hr");
+          var packageReadme = newElem("div");
+          packageReadme.innerHTML=parse(json.readme);
+          // var converter = new showdown.Converter();
+          // packageReadme.innerHTML = converter.makeHtml(json.readme);
+
+          packageOutContainer.appendChild(packageNameHeader);
+          packageOutContainer.appendChild(packageDesc);
+          packageOutContainer.appendChild(packageUpdateTimestampContainer);
+          packageOutContainer.appendChild(hr);
+          packageOutContainer.appendChild(packageReadme);
+        });
+        domItems.packageDialog.dialogBase.close();
+      });
+      domItems.packageDialog.dialogBase.appendChild(
+        domItems.packageDialog.textInput
+      );
+      domItems.packageDialog.dialogBase.appendChild(
+        domItems.packageDialog.button
+      );
+      appendApp(domItems.packageDialog.dialogBase);
+      var app = domItems.ui.app;
+      domItems.ui.topAppBarComponents.titleElem.slot = "title";
+      domItems.ui.topAppBarComponents.titleElem.innerText =
+        domItems.ui.topAppBarComponents.titleField;
+      // Set the title
+      document.querySelector("title").innerText =
+        domItems.ui.topAppBarComponents.titleField;
+      app.appendChild(domItems.ui.topAppBarComponents.titleElem);
+      // Get our package output in there
+      appendApp(domItems.ui.packageOutContainer);
+      document.body.appendChild(app);
+      domItems.packageDialog.dialogBase.show();
+    </script>
+  </body>
+</html>
