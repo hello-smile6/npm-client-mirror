@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://unpkg.com/eruda"></script>
+    <script>
+      eruda.init();
+    </script>
+    <link
+      rel="shortcut icon"
+      href="https://icons.duckduckgo.com/ip5/npmjs.com.ico"
+      type="image/x-icon"
+    />
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NPM Client</title>
+    <!-- Your application must load the Roboto and Material Icons fonts. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Material+Icons&display=block"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+          padding: 0;
+          margin: 0;
+      }
+      /*:root {
+        /* font-family: Roboto; * /
+
+      } */
+    </style>
+  </head>
+  <body>
+    <script type="module">
+      import "https://unpkg.com/@material/mwc-button?module";
+      // import "https://unpkg.com/@material/mwc-textarea?module";
+      import "https://unpkg.com/@material/mwc-textfield?module";
+      // import "https://unpkg.com/@material/mwc-linear-progress?module";
+      // import "https://unpkg.com/@material/mwc-formfield?module";
+      // import "https://unpkg.com/@material/mwc-checkbox?module";
+      // import "https://unpkg.com/@material/mwc-switch?module";
+      import "https://unpkg.com/@material/mwc-top-app-bar?module";
+      import "https://unpkg.com/@material/mwc-snackbar?module";
+      import "https://unpkg.com/@material/mwc-dialog?module";
+      import { parse } from "https://unpkg.com/marked?module";
+      /**
+       * @param {String} elemName
+       * @returns {HTMLElement}
+       */
+      function newElem(elemName) {
+        return document.createElement(elemName);
+      }
+      let _dialogTextField = newElem("mwc-textfield");
+      let _dialogSubmitButton = newElem("mwc-button");
+      const domTree = {
+        ui: {
+          snackbars: {
+            fetchErrorSnackbar: newElem("mwc-snackbar"),
+          },
+          app: {
+            topAppBarElem: newElem("mwc-top-app-bar"),
+            topAppBarText: newElem("div"),
+          },
+          dialog: {
+            mainDialog: newElem("mwc-dialog"),
+            textField: _dialogTextField,
+            submitButton: _dialogSubmitButton,
+          },
+        },
+        inputs: {
+          dialog: {
+            textField: _dialogTextField,
+          },
+        },
+        buttons: {
+          dialog: {
+            dialogSubmitButton: _dialogSubmitButton,
+          },
+        },
+      };
+      _dialogTextField = undefined;
+      _dialogSubmitButton = undefined;
+      domTree.ui.dialog.textField = domTree.inputs.dialog.textField;
+      domTree.ui.app.topAppBarText.slot = "title";
+      domTree.ui.app.topAppBarText.innerHTML = "NPM Registry Viewer";
+      domTree.ui.app.topAppBarElem.appendChild(domTree.ui.app.topAppBarText);
+      // domTree.ui.dialog.textField.label="Package Name";
+      domTree.ui.dialog.textField.placeholder = "@material/web";
+      domTree.ui.dialog.submitButton.label = "Load";
+      domTree.ui.dialog.submitButton.slot = "primaryAction";
+      domTree.ui.snackbars.fetchErrorSnackbar.labelText = "Failed to fetch.";
+      domTree.ui.dialog.submitButton.addEventListener("click", function () {
+        domTree.ui.dialog.submitButton.disabled = true;
+        domTree.ui.dialog.textField.disabled = false;
+        if (domTree.ui.dialog.textField.value.length > 0) {
+          fetch(
+            "https://registry.npmjs.com/".concat(
+              domTree.ui.dialog.textField.value
+            )
+          ).then(
+            function (res) {
+              res.json().then(function (json) {
+                domTree.ui.dialog.mainDialog.close();
+                console.log(json);
+                const readmeText = parse(json.readme);
+                var output = newElem("div");
+                /**
+                 * @type {HTMLHeadingElement} output.heading
+                 */
+                var heading = newElem("h1");
+                heading.innerText = json.name;
+                var description = newElem("blockquote");
+                description.innerText = json.description;
+                var hr = newElem("hr");
+                var readme = newElem("div");
+                readme.innerHTML = readmeText;
+                output.appendChild(heading);
+                output.appendChild(description);
+                output.appendChild(hr);
+                output.appendChild(readme);
+                domTree.ui.app.topAppBarElem.appendChild(output);
+              });
+            },
+            function (error) {
+              domTree.ui.dialog.textField.disabled = false;
+              domTree.ui.dialog.submitButton.disabled = false;
+              console.log(error.stack);
+              domTree.ui.snackbars.fetchErrorSnackbar.show();
+            }
+          );
+        }
+      });
+      domTree.ui.dialog.mainDialog.appendChild(domTree.ui.dialog.submitButton);
+      domTree.ui.dialog.mainDialog.appendChild(domTree.ui.dialog.textField);
+      domTree.ui.dialog.mainDialog.stacked = "";
+      domTree.ui.dialog.mainDialog.scrimClickAction = "";
+      domTree.ui.dialog.mainDialog.escapeKeyAction = "";
+      domTree.ui.dialog.mainDialog.heading = "Package Name";
+      domTree.ui.app.topAppBarElem.appendChild(domTree.ui.dialog.mainDialog);
+      domTree.ui.app.topAppBarElem.appendChild(
+        domTree.ui.snackbars.fetchErrorSnackbar
+      );
+      document.body.appendChild(domTree.ui.app.topAppBarElem);
+      domTree.ui.dialog.mainDialog.show();
+    </script>
+  </body>
+</html>
